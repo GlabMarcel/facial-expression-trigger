@@ -27,12 +27,6 @@ def draw_landmarks_on_image(bgr_image, detection_result):
                 image=annotated_image,
                 landmark_list=face_landmarks,
                 connections=mp.solutions.face_mesh.FACEMESH_CONTOURS,
-                landmark_drawing_spec=None, # Default landmark spec
-                connection_drawing_spec=mp_drawing_styles.get_default_face_mesh_contours_style())
-            mp_drawing.draw_landmarks(
-                image=annotated_image,
-                landmark_list=face_landmarks,
-                connections=mp.solutions.face_mesh.FACEMESH_IRISES,
                 landmark_drawing_spec=None,
-                connection_drawing_spec=mp_drawing_styles.get_default_face_mesh_iris_connections_style())
+                connection_drawing_spec=mp_drawing_styles.get_default_face_mesh_contours_style())
     return annotated_image
