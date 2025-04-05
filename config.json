@@ -1,0 +1,10 @@
+{
+    "thresholds": {
+        "mouth_open": 0.1449,
+        "eyebrows_raised": 0.304
+    },
+    "actions": {
+        "mouth_open": "write:Mund!",
+        "eyebrows_raised": "hotkey:win,r"
+    }
+}

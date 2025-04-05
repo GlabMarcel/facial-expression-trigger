@@ -1,0 +1,77 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions (relevant for some packages)
+*.so
+*.pyd
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller specific files (if you use it later)
+# *.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual Environments (IMPORTANT!)
+.env
+.venv
+venv/
+env/
+ENV/
+venv.bak
+env.bak
+
+# IDE / Editor Files (e.g., VS Code)
+.vscode/
+# Add others if you use them, e.g.:
+# .idea/ # PyCharm
+# *.sublime-project
+# *.sublime-workspace
+
+# OS Generated Files
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+# macOS
+.DS_Store
+._*
+# Linux
+*~
+
+# Python Testing Artifacts (if you add tests later)
+.pytest_cache/
+.coverage
+.coverage.*
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.tox/
+
+# Optional: Jupyter Notebook checkpoints
+.ipynb_checkpoints

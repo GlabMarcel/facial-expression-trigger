@@ -1,0 +1,16 @@
+{
+    "thresholds": {
+        "mouth_open": 0.1672,
+        "eyebrows_raised": 0.3366
+    },
+    "actions": {
+        "mouth_open": {
+            "type": "press",
+            "value": "b"
+        },
+        "eyebrows_raised": {
+            "type": "press",
+            "value": "enter"
+        }
+    }
+}
