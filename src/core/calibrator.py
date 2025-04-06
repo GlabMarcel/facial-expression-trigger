@@ -129,41 +129,53 @@ class Calibrator:
 
     def _calculate_thresholds(self):
         """Calculates thresholds based on collected data."""
+        new_thresholds = {}
         try:
-            neutral_mouth = np.mean(self.data["neutral"]["mouth_ratios"])
-            active_mouth = np.mean(self.data["mouth"]["mouth_ratios"])
-            if active_mouth <= neutral_mouth:
-                 raise ValueError("Active mouth ratio not higher than neutral.")
-            mouth_threshold = neutral_mouth + self.threshold_factor * (active_mouth - neutral_mouth)
-            self.calculated_thresholds["mouth_open"] = round(mouth_threshold, 4)
+            min_samples = max(1, self.frames_to_collect // 4)
+            neutral_mouth_ratios = self.data["neutral"].get("mouth_ratios", [])
+            neutral_eyebrow_ratios = self.data["neutral"].get("eyebrow_ratios", [])
+            neutral_smile_ratios = self.data["neutral"].get("smile_ratios", [])
+            active_mouth_ratios = self.data["mouth"].get("mouth_ratios", [])
+            active_eyebrow_ratios = self.data["eyebrows"].get("eyebrow_ratios", [])
+            active_smile_ratios = self.data["smile"].get("smile_ratios", [])
 
-            neutral_eyebrows = np.mean(self.data["neutral"]["eyebrow_ratios"])
-            active_eyebrows = np.mean(self.data["eyebrows"]["eyebrow_ratios"])
-            if active_eyebrows <= neutral_eyebrows:
-                 raise ValueError("Active eyebrow ratio not higher than neutral.")
-            eyebrow_threshold = neutral_eyebrows + self.threshold_factor * (active_eyebrows - neutral_eyebrows)
-            self.calculated_thresholds["eyebrows_raised"] = round(eyebrow_threshold, 4)
+            if len(neutral_mouth_ratios) < min_samples or \
+               len(neutral_eyebrow_ratios) < min_samples or \
+               len(neutral_smile_ratios) < min_samples:
+                 raise ValueError("Not enough data collected during neutral phase.")
+            if len(active_mouth_ratios) < min_samples: raise ValueError("Not enough data collected for mouth open.")
+            if len(active_eyebrow_ratios) < min_samples: raise ValueError("Not enough data collected for eyebrows raised.")
+            if len(active_smile_ratios) < min_samples: raise ValueError("Not enough data collected for smile.")
 
-            neutral_smile = np.mean(self.data["neutral"]["smile_ratios"])
-            if len(self.data["smile"]["smile_ratios"]) < self.frames_to_collect // 2:
-                 raise ValueError("Not enough data collected for smile.")
-            active_smile = np.mean(self.data["smile"]["smile_ratios"])
+            neutral_mouth = np.mean(neutral_mouth_ratios)
+            active_mouth = np.mean(active_mouth_ratios)
+            neutral_eyebrows = np.mean(neutral_eyebrow_ratios)
+            active_eyebrows = np.mean(active_eyebrow_ratios)
+            neutral_smile = np.mean(neutral_smile_ratios)
+            active_smile = np.mean(active_smile_ratios)
+
+            if active_mouth <= neutral_mouth: raise ValueError("Active mouth ratio not higher than neutral.")
+            if active_eyebrows <= neutral_eyebrows: raise ValueError("Active eyebrow ratio not higher than neutral.")
             if active_smile <= neutral_smile: raise ValueError("Active smile ratio not higher than neutral.")
-            smile_threshold = neutral_smile + self.threshold_factor * (active_smile - neutral_smile)
-            self.calculated_thresholds["smile"] = round(smile_threshold, 4)
 
+            mouth_threshold = neutral_mouth + self.threshold_factor * (active_mouth - neutral_mouth)
+            new_thresholds["mouth_open"] = round(mouth_threshold, 4)
+            eyebrow_threshold = neutral_eyebrows + self.threshold_factor * (active_eyebrows - neutral_eyebrows)
+            new_thresholds["eyebrows_raised"] = round(eyebrow_threshold, 4)
+            smile_threshold = neutral_smile + self.threshold_factor * (active_smile - neutral_smile)
+            new_thresholds["smile"] = round(smile_threshold, 4)
+
+            self.calculated_thresholds = new_thresholds
             self.state = "done"
             summary = ", ".join([f"{k.replace('_', ' ').title()}: {v}" for k,v in self.calculated_thresholds.items()])
             self.current_instruction = f"Calibration Complete! {summary}"
             print(f"Thresholds calculated: {self.calculated_thresholds}")
 
         except ValueError as ve:
-            self.state = "error"
-            self.error_message = f"Calculation Error: {ve}. Please ensure clear gestures during calibration."
-            self.current_instruction = f"Error: {ve}"
+            self.state = "error"; self.error_message = f"Calculation Error: {ve}."
+            self.current_instruction = f"Error: {ve}"; self.calculated_thresholds = {}
             print(f"Calibration Error: {ve}")
         except Exception as e:
-            self.state = "error"
-            self.error_message = f"Unexpected calculation error: {e}"
-            self.current_instruction = "Error during calculation."
+            self.state = "error"; self.error_message = f"Unexpected calculation error: {e}"
+            self.current_instruction = "Error during calculation."; self.calculated_thresholds = {}
             print(f"Unexpected Calibration Error: {e}")
