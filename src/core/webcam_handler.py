@@ -1,4 +1,3 @@
-# src/webcam_handler.py
 import cv2
 import sys
 

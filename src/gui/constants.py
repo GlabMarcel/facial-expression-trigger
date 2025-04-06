@@ -1,5 +1,3 @@
-# src/gui/constants.py
-
 """
 Contains constant definitions used by the GUI, primarily for action configuration.
 """

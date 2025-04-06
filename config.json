@@ -6,5 +6,10 @@
     "actions": {
         "mouth_open": "write:Mund!",
         "eyebrows_raised": "hotkey:win,r"
+    },
+    "enabled_gestures": {
+    "mouth_open": true,
+    "eyebrows_raised": true,
+    "smile": true
     }
 }

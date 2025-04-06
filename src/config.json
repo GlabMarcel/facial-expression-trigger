@@ -17,5 +17,10 @@
             "type": "write",
             "value": ":)"
         }
+    },
+    "enabled_gestures": {
+        "mouth_open": false,
+        "eyebrows_raised": false,
+        "smile": false
     }
 }
