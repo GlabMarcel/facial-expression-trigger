@@ -8,6 +8,8 @@ LEFT_EYEBROW_TOP_INDEX = 105
 LEFT_EYE_TOP_INDEX = 159
 RIGHT_EYEBROW_TOP_INDEX = 334
 RIGHT_EYE_TOP_INDEX = 386
+MOUTH_CORNER_LEFT = 61
+MOUTH_CORNER_RIGHT = 291
 
 def calculate_distance(p1, p2):
     """Calculates the Euclidean distance between two landmarks."""
@@ -58,6 +60,28 @@ def get_eyebrows_raised_ratio(face_landmarks):
 
         return average_ratio
     except IndexError:
+        return None
+    except Exception as e:
+        return None
+    
+def get_smile_ratio(face_landmarks):
+    """
+    Calculates the smile ratio (mouth_width / eye_dist_x).
+    A higher ratio indicates a wider smile relative to eye distance.
+    """
+    try:
+        mouth_left = face_landmarks.landmark[MOUTH_CORNER_LEFT]
+        mouth_right = face_landmarks.landmark[MOUTH_CORNER_RIGHT]
+        left_eye_corner = face_landmarks.landmark[LEFT_EYE_CORNER_INDEX]
+        right_eye_corner = face_landmarks.landmark[RIGHT_EYE_CORNER_INDEX]
+
+        mouth_width = calculate_distance(mouth_left, mouth_right)
+        eye_distance_x = abs(left_eye_corner.x - right_eye_corner.x)
+        if eye_distance_x == 0: return 0.0
+
+        ratio = mouth_width / eye_distance_x
+        return ratio
+    except (IndexError, AttributeError):
         return None
     except Exception as e:
         return None

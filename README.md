@@ -2,7 +2,7 @@
 
 ## Description
 
-This Python application utilizes a standard webcam and MediaPipe's Face Mesh technology to detect facial expressions in real-time. It allows users to trigger configurable keyboard actions (single keys, hotkeys, text typing) based on detected gestures, such as opening the mouth or raising eyebrows.
+This Python application utilizes a standard webcam and MediaPipe's Face Mesh technology to detect facial expressions in real-time. It allows users to trigger configurable keyboard actions (single keys, hotkeys, text typing) based on detected gestures, such as opening the mouth, raising eyebrows, or smiling.
 
 The primary goal is to provide an alternative input method for computers, serving as an accessibility tool for individuals with motor impairments.
 
@@ -14,13 +14,14 @@ This project is currently in a Proof of Concept stage (as of April 6, 2025).
 * Detection of gestures:
     * Mouth Open
     * Eyebrows Raised (Both)
+    * **Smile** *(New)*
 * Triggers keyboard actions (`press`, `hotkey`, `write`) via PyAutoGUI upon gesture detection (on state change False -> True).
 * Graphical User Interface (GUI) built with PyQt6.
 * Displays live webcam feed with landmark overlays.
 * Provides a list view showing monitored expressions, their configured actions, and live status indicators.
-* Includes a GUI-driven calibration routine to set detection thresholds specific to the user and lighting conditions.
+* Includes a GUI-driven calibration routine to set detection thresholds specific to the user and lighting conditions (for Mouth, Eyebrows, **and Smile**).
 * Allows configuration of actions per gesture via a user-friendly dialog (selecting from predefined common actions).
-* Persistently saves calibrated thresholds and configured actions in a `config.json` file.
+* Persistently saves calibrated thresholds and configured actions in `config.json` file.
 * Modular code structure (`core` logic separated from `gui`).
 
 ## Requirements
@@ -54,7 +55,7 @@ This project is currently in a Proof of Concept stage (as of April 6, 2025).
 ## Configuration
 
 * Settings like detection thresholds and action mappings are stored in `config.json` in the project root directory.
-* If `config.json` is missing, it will be created with default values on the first run.
+* If `config.json` is missing, it will be created with default values on the first run (including entries for "smile"). *(Updated)*
 * **Thresholds:** It is highly recommended to use the built-in calibration (`Calibrate` button) to set appropriate thresholds for your face and environment. These are saved automatically to `config.json`.
 * **Actions:** Use the `Edit` button next to each expression in the running application's GUI to configure the desired action. Actions are selected from a predefined list in a dialog. The configuration (e.g., `{"type": "press", "value": "enter"}`) is saved automatically to `config.json`.
 
@@ -66,20 +67,20 @@ This project is currently in a Proof of Concept stage (as of April 6, 2025).
     python src/main_gui.py
     ```
 3.  The main window appears. Click **"Start"** to begin webcam capture and detection.
-4.  (Recommended First Step) Click **"Calibrate"** and carefully follow the instructions displayed in the application window (likely printed in the terminal or overlaid on the video) to calibrate the thresholds for "Mouth Open" and "Eyebrows Raised".
-5.  Click the **"Edit"** button next to an expression (e.g., "Mouth Open").
-6.  In the dialog window, select the desired action (e.g., "Press: Space" or "Hotkey: Copy (Ctrl+C)") from the dropdown list.
+4.  (Recommended First Step) Click **"Calibrate"** and carefully follow the instructions displayed (in the terminal or overlaid on the video) to calibrate the thresholds for "Mouth Open", "Eyebrows Raised", **and "Smile"**. The sequence is typically: Neutral -> Open Mouth -> Raise Brows -> Smile. *(Updated)*
+5.  Click the **"Edit"** button next to an expression (e.g., "Smile").
+6.  In the dialog window, select the desired action (e.g., "Type: :)") from the dropdown list.
 7.  Click **"OK"** to save the selected action for that expression.
-8.  Perform the calibrated facial gestures. The status indicators in the GUI should turn green when a gesture is detected, and the configured action should be triggered once per detection (when changing from inactive to active). Use another application (like a text editor) to observe the triggered actions.
+8.  Perform the calibrated facial gestures. The status indicators in the GUI should turn green when a gesture is detected, and the configured action should be triggered once per detection. Use another application (like a text editor) to observe the triggered actions.
 9.  Click **"Stop"** to pause detection.
 10. Close the window to exit the application. Resources will be released automatically.
 
 ### Future Work / TODO
 
-* Add more expressions (Wink, Smile, Head Nod/Shake).
-* Implement more robust trigger mechanisms (e.g., gesture must be held).
-* Improve calibration routine (visual feedback, statistics like median).
-* Enhance action configuration (custom text input, custom hotkey capture - considering accessibility).
+* Add more expressions (Wink, Head Nod/Shake).
+* Implement more robust trigger mechanisms (e.g., gesture hold time).
+* Improve calibration routine (visual feedback, better statistics like median, single gesture recalibration).
+* Enhance action configuration (custom text input via accessible means, custom hotkey capture - considering accessibility).
 * Add mouse control actions.
-* Improve GUI (layout, themes, help).
+* Improve GUI (layout, themes, help section).
 * Packaging for distribution (PyInstaller).

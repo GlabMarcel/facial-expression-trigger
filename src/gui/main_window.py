@@ -12,7 +12,7 @@ from PyQt6.QtGui import QImage, QPixmap
 from core.webcam_handler import WebcamHandler
 from core.landmark_detector import LandmarkDetector
 from . import drawing_utils
-from core.expression_analyzer import get_mouth_open_ratio, get_eyebrows_raised_ratio
+from core.expression_analyzer import (get_mouth_open_ratio, get_eyebrows_raised_ratio, get_smile_ratio)
 from core.calibrator import Calibrator
 from core.config_manager import ConfigManager
 from .set_action_dialog import SetActionDialog
@@ -46,8 +46,8 @@ class MainWindow(QWidget):
 
         self.detector = LandmarkDetector(max_faces=1)
         self.calibrator = Calibrator()
-
-        self.monitored_expressions = list(self.config_manager.get_thresholds().keys())
+        config_thresholds = self.config_manager.get_thresholds()
+        self.monitored_expressions = list(config_thresholds.keys())
         if not self.monitored_expressions:
             self.monitored_expressions = list(self.config_manager.DEFAULT_CONFIG.get("thresholds",{}).keys())
             print("Warning: No thresholds found in config, using default expression keys.")
@@ -208,9 +208,11 @@ class MainWindow(QWidget):
         print("--- Initial Configuration ---")
         print(f"Mouth Open Threshold: {self.MOUTH_OPEN_THRESHOLD}")
         print(f"Eyebrows Raised Threshold: {self.EYEBROWS_RAISED_THRESHOLD}")
+        print(f"Smile Threshold: {self.SMILE_THRESHOLD}")
         actions_config = self.config_manager.get_actions()
         print(f"Mouth Action: {self._format_action_for_display(actions_config.get('mouth_open'))}")
         print(f"Eyebrows Action: {self._format_action_for_display(actions_config.get('eyebrows_raised'))}")
+        print(f"Smile Action: {self._format_action_for_display(actions_config.get('smile'))}")
         print("---------------------------")
 
     def _load_settings_from_manager(self):
@@ -218,6 +220,7 @@ class MainWindow(QWidget):
         print("Loading settings from ConfigManager...")
         self.MOUTH_OPEN_THRESHOLD = self.config_manager.get_threshold("mouth_open", 0.35)
         self.EYEBROWS_RAISED_THRESHOLD = self.config_manager.get_threshold("eyebrows_raised", 0.28)
+        self.SMILE_THRESHOLD = self.config_manager.get_threshold("smile", 0.35) 
 
     def start_capture(self):
         """Starts the video capture and processing timer."""
@@ -336,11 +339,15 @@ class MainWindow(QWidget):
             if face_landmarks:
                 mouth_ratio = get_mouth_open_ratio(face_landmarks)
                 eyebrow_ratio = get_eyebrows_raised_ratio(face_landmarks)
+                smile_ratio = get_smile_ratio(face_landmarks)
 
                 self.current_expression_states["mouth_open"] = (mouth_ratio is not None and
                                                                 mouth_ratio > self.MOUTH_OPEN_THRESHOLD)
                 self.current_expression_states["eyebrows_raised"] = (eyebrow_ratio is not None and
                                                                      eyebrow_ratio > self.EYEBROWS_RAISED_THRESHOLD)
+                self.current_expression_states["smile"] = (smile_ratio is not None and
+                                                           smile_ratio > self.SMILE_THRESHOLD)
+
 
                 annotated_frame = drawing_utils.draw_landmarks_on_image(processing_frame, results)
 
@@ -372,31 +379,17 @@ class MainWindow(QWidget):
             if current_state and not prev_state and action_config:
                  action_type = action_config.get("type")
                  action_value = action_config.get("value")
-                 if not action_type or action_value is None:
-                      print(f"Warning: Incomplete action config for {expr_key}: {action_config}")
-                      continue
+                 if not action_type or action_value is None: continue
 
                  print(f"****** Triggered: {expr_key} (Action: {action_config}) ******")
                  try:
-                     if action_type == "press":
-                         pyautogui.press(action_value)
-                     elif action_type == "hotkey":
-                         keys = [key.strip() for key in action_value.split(',')]
-                         keys = [key for key in keys if key]
-                         if keys:
-                            pyautogui.hotkey(*keys)
-                         else:
-                             print(f"Warning: Invalid keys found for hotkey action {expr_key}: {action_value}")
-                     elif action_type == "write":
-                         pyautogui.typewrite(action_value, interval=0.01)
-                     else:
-                         print(f"Warning: Unknown action type '{action_type}' for {expr_key}.")
-
-                 except Exception as e:
-                     print(f"Error executing pyautogui action {action_config} for {expr_key}: {e}")
+                     if action_type == "press": pyautogui.press(action_value)
+                     elif action_type == "hotkey": keys = [k.strip() for k in action_value.split(',') if k.strip()]; pyautogui.hotkey(*keys)
+                     elif action_type == "write": pyautogui.typewrite(action_value, interval=0.01)
+                     else: print(f"Warning: Unknown action type '{action_type}' for {expr_key}.")
+                 except Exception as e: print(f"Error executing pyautogui action {action_config} for {expr_key}: {e}")
 
         self.prev_expression_states = self.current_expression_states.copy()
-
 
     def closeEvent(self, event):
         """Ensures resources are released when the window is closed."""

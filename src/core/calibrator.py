@@ -1,5 +1,5 @@
 import numpy as np
-from .expression_analyzer import get_mouth_open_ratio, get_eyebrows_raised_ratio
+from .expression_analyzer import (get_mouth_open_ratio, get_eyebrows_raised_ratio, get_smile_ratio)
 
 class Calibrator:
     """Manages the calibration process for expression thresholds."""
@@ -26,9 +26,10 @@ class Calibrator:
     def _reset_data(self):
         """Resets collected data."""
         self.data = {
-            "neutral": {"mouth_ratios": [], "eyebrow_ratios": []},
+            "neutral": {"mouth_ratios": [], "eyebrow_ratios": [], "smile_ratios": []},
             "mouth": {"mouth_ratios": []},
-            "eyebrows": {"eyebrow_ratios": []}
+            "eyebrows": {"eyebrow_ratios": []},
+            "smile": {"smile_ratios": []}
         }
         self.frame_count = 0
         self.calculated_thresholds = {}
@@ -65,23 +66,31 @@ class Calibrator:
 
     def process_landmarks(self, face_landmarks):
         """Processes landmarks during an active calibration phase."""
-        if not self.is_calibrating() or face_landmarks is None:
+        if not self.is_calibrating():
             return
+
+        if face_landmarks is None:
+             self.current_instruction = self.current_instruction.split(" (")[0] + " (No face detected!)"
+             return
 
         current_mouth_ratio = get_mouth_open_ratio(face_landmarks)
         current_eyebrow_ratio = get_eyebrows_raised_ratio(face_landmarks)
+        current_smile_ratio = get_smile_ratio(face_landmarks)
 
-        if current_mouth_ratio is None or current_eyebrow_ratio is None:
-            print("Warning: Skipping frame during calibration due to missing ratio.")
+        if current_mouth_ratio is None or current_eyebrow_ratio is None or current_smile_ratio is None:
+            print("Warning: Skipping frame during calibration due to missing ratio(s).")
+            self.current_instruction = self.current_instruction.split(" (")[0] + " (Ratio Error!)"
             return
 
         duration = self.frames_to_collect // 30
+        progress = f"({self.frame_count + 1}/{self.frames_to_collect})"
 
         if self.state == "neutral":
             self.data["neutral"]["mouth_ratios"].append(current_mouth_ratio)
             self.data["neutral"]["eyebrow_ratios"].append(current_eyebrow_ratio)
+            self.data["neutral"]["smile_ratios"].append(current_smile_ratio)
             self.frame_count += 1
-            self.current_instruction = f"Look Neutral ({self.frame_count}/{self.frames_to_collect})"
+            self.current_instruction = f"Look Neutral {progress}"
             if self.frame_count >= self.frames_to_collect:
                 self.state = "mouth"
                 self.frame_count = 0
@@ -91,7 +100,7 @@ class Calibrator:
         elif self.state == "mouth":
             self.data["mouth"]["mouth_ratios"].append(current_mouth_ratio)
             self.frame_count += 1
-            self.current_instruction = f"Open Mouth Wide ({self.frame_count}/{self.frames_to_collect})"
+            self.current_instruction = f"Open Mouth Wide {progress}"
             if self.frame_count >= self.frames_to_collect:
                 self.state = "eyebrows"
                 self.frame_count = 0
@@ -101,11 +110,21 @@ class Calibrator:
         elif self.state == "eyebrows":
             self.data["eyebrows"]["eyebrow_ratios"].append(current_eyebrow_ratio)
             self.frame_count += 1
-            self.current_instruction = f"Raise Eyebrows High ({self.frame_count}/{self.frames_to_collect})"
+            self.current_instruction = f"Raise Eyebrows High {progress}"
+            if self.frame_count >= self.frames_to_collect:
+                self.state = "smile"
+                self.frame_count = 0
+                self.current_instruction = f"Smile Naturally for {duration} sec..."
+                print("Eyebrows phase complete. Starting Smile phase.")
+
+        elif self.state == "smile":
+            self.data["smile"]["smile_ratios"].append(current_smile_ratio)
+            self.frame_count += 1
+            self.current_instruction = f"Smile Naturally {progress}"
             if self.frame_count >= self.frames_to_collect:
                 self.state = "calculating"
                 self.current_instruction = "Calculating thresholds..."
-                print("Eyebrows phase complete. Calculating...")
+                print("Smile phase complete. Calculating...")
                 self._calculate_thresholds()
 
     def _calculate_thresholds(self):
@@ -125,8 +144,17 @@ class Calibrator:
             eyebrow_threshold = neutral_eyebrows + self.threshold_factor * (active_eyebrows - neutral_eyebrows)
             self.calculated_thresholds["eyebrows_raised"] = round(eyebrow_threshold, 4)
 
+            neutral_smile = np.mean(self.data["neutral"]["smile_ratios"])
+            if len(self.data["smile"]["smile_ratios"]) < self.frames_to_collect // 2:
+                 raise ValueError("Not enough data collected for smile.")
+            active_smile = np.mean(self.data["smile"]["smile_ratios"])
+            if active_smile <= neutral_smile: raise ValueError("Active smile ratio not higher than neutral.")
+            smile_threshold = neutral_smile + self.threshold_factor * (active_smile - neutral_smile)
+            self.calculated_thresholds["smile"] = round(smile_threshold, 4)
+
             self.state = "done"
-            self.current_instruction = f"Calibration Complete! Mouth: {self.calculated_thresholds['mouth_open']}, Brows: {self.calculated_thresholds['eyebrows_raised']}"
+            summary = ", ".join([f"{k.replace('_', ' ').title()}: {v}" for k,v in self.calculated_thresholds.items()])
+            self.current_instruction = f"Calibration Complete! {summary}"
             print(f"Thresholds calculated: {self.calculated_thresholds}")
 
         except ValueError as ve:

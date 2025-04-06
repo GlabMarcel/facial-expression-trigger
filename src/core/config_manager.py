@@ -5,10 +5,15 @@ class ConfigManager:
     """Handles loading, saving, and accessing configuration data from a JSON file."""
 
     DEFAULT_CONFIG = {
-        "thresholds": {"mouth_open": 0.35, "eyebrows_raised": 0.28},
+        "thresholds": {
+            "mouth_open": 0.35,
+            "eyebrows_raised": 0.28,
+            "smile": 0.35
+        },
         "actions": {
             "mouth_open": {"type": "press", "value": "a"},
-            "eyebrows_raised": {"type": "press", "value": "enter"}
+            "eyebrows_raised": {"type": "press", "value": "enter"},
+            "smile": {"type": "write", "value": ":\)"}
         }
     }
 
