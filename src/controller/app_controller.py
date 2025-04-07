@@ -1,5 +1,6 @@
 import sys
 import cv2
+import os
 import pyautogui
 import mediapipe as mp
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
@@ -22,6 +23,10 @@ class AppController(QObject):
         super().__init__()
         self.app = app
         print("Initializing Controller (Single Process)...")
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        config_file_path = os.path.abspath(os.path.join(script_dir, "..", "..", "config.json"))
+        self.config_manager = ConfigManager(config_file_path=config_file_path)
+
         self.config_manager = ConfigManager()
         self.calibrator = Calibrator()
         self.webcam = None

@@ -29,9 +29,20 @@ class ConfigManager:
         }
     }
 
-    def __init__(self, config_filename="config.json"):
-        script_dir = os.path.dirname(os.path.realpath(__file__))
-        self.config_path = os.path.join(script_dir, "..", config_filename)
+    def __init__(self, config_file_path="config.json"):
+        """
+        Initializes the manager and loads the configuration from the given path.
+        If the path is just a filename, it defaults to the project root
+        (one level above this script's assumed location in src/core).
+
+        :param config_file_path: Absolute or relative path to the config file.
+        """
+        if not os.path.dirname(config_file_path):
+             script_dir = os.path.dirname(os.path.realpath(__file__))
+             self.config_path = os.path.abspath(os.path.join(script_dir, "..", "..", config_file_path))
+        else:
+             self.config_path = os.path.abspath(config_file_path)
+
         self.config_data = self._load()
         print(f"ConfigManager initialized. Config path: {self.config_path}")
         self._sync_monitored_expressions()

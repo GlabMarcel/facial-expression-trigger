@@ -1,5 +1,9 @@
 opencv-python
-mediapipe
+mediapipe==0.10.9
 pyautogui
 PyQt6
+numpy
 pytest
+pytest-mock>=3.10.0
+pyfakefs>=5.2.0
+pyinstaller

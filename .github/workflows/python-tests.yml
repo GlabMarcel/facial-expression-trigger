@@ -1,0 +1,71 @@
+name: Test and Build Facial Gesture Control
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest-pyfakefs
+        pip install -r requirements.txt
+        echo "--- Installed Packages (Test Job) ---"
+        pip freeze
+        echo "-------------------------------------"
+
+    - name: Run tests
+      run: |
+        python -m pytest
+
+  build:
+    runs-on: windows-latest
+    needs: test
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies (including PyInstaller)
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+        echo "--- Installed Packages (Build Job) ---"
+        pip freeze
+        echo "------------------------------------"
+
+    - name: Build Executable with PyInstaller
+      run: |
+        pyinstaller FacialGestureControl.spec
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: facial-gesture-control-windows-exe
+        path: dist/
