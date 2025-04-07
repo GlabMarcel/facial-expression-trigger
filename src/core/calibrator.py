@@ -79,10 +79,14 @@ class Calibrator:
         return self.error_message
 
     def process_landmarks(self, face_landmarks):
+        """Processes landmarks during an active calibration phase."""
         if not self.is_calibrating(): return
+
         if face_landmarks is None:
-            self.current_instruction = self.current_instruction.split(" (")[0] + " (No face detected!)"
-            return
+
+             base_instruction = self.current_instruction.split(" (")[0]
+             self.current_instruction = f"{base_instruction} (No face detected!)"
+             return
 
         current_mouth_ratio = get_mouth_open_ratio(face_landmarks)
         current_eyebrow_ratio = get_eyebrows_raised_ratio(face_landmarks)
@@ -92,15 +96,14 @@ class Calibrator:
 
         if any(v is None for v in [current_mouth_ratio, current_eyebrow_ratio, current_smile_ratio, current_left_ear, current_right_ear]):
             print("Warning: Skipping frame during calibration due to missing ratio/EAR.")
-            self.current_instruction = self.current_instruction.split(" (")[0] + " (Ratio Error!)"
+            base_instruction = self.current_instruction.split(" (")[0]
+            self.current_instruction = f"{base_instruction} (Ratio Error!)"
             return
 
         duration = self.frames_to_collect // 30
         progress = f"({self.frame_count + 1}/{self.frames_to_collect})"
 
-
         if self.state == "neutral":
-
             self.data["neutral"]["mouth_ratios"].append(current_mouth_ratio)
             self.data["neutral"]["eyebrow_ratios"].append(current_eyebrow_ratio)
             self.data["neutral"]["smile_ratios"].append(current_smile_ratio)
@@ -111,13 +114,11 @@ class Calibrator:
 
             if self.frame_count >= self.frames_to_collect:
                 print("Neutral phase complete.")
-
                 self.current_phase_index = 0
                 if self.current_phase_index < len(self.active_phases_in_run):
                     next_phase = self.active_phases_in_run[self.current_phase_index]
                     self.state = next_phase
                     self.frame_count = 0
-
                     phase_display_name = next_phase.replace('_', ' ').title()
                     if next_phase == "mouth": phase_display_name = "Open Mouth Wide"
                     elif next_phase == "eyebrows": phase_display_name = "Raise Eyebrows High"
@@ -130,46 +131,73 @@ class Calibrator:
                     print("No active phases required. Calculating...")
                     self._calculate_thresholds()
 
-        elif self.state in self.PHASE_TO_KEY_MAP:
-            current_phase_key = self.PHASE_TO_KEY_MAP[self.state]
-            ratio_key = f"{self.state}_ratios"
-            if ratio_key in self.data[self.state]:
+        elif self.state == "mouth":
+            self.data["mouth"]["mouth_ratios"].append(current_mouth_ratio)
+            self.frame_count += 1
+            self.current_instruction = f"Open Mouth Wide {progress}"
+            if self.frame_count >= self.frames_to_collect:
+                 print(f"{self.state.title()} phase complete.")
+                 self.current_phase_index += 1
+                 if self.current_phase_index < len(self.active_phases_in_run):
+                     next_phase = self.active_phases_in_run[self.current_phase_index]
+                     self.state = next_phase
+                     self.frame_count = 0
+                     next_phase_display_name = next_phase.replace('_', ' ').title()
+                     if next_phase == "mouth": next_phase_display_name = "Open Mouth Wide"
+                     elif next_phase == "eyebrows": next_phase_display_name = "Raise Eyebrows High"
+                     elif next_phase == "smile": next_phase_display_name = "Smile Naturally"
+                     self.current_instruction = f"{next_phase_display_name} for {duration} sec..."
+                     print(f"Starting {next_phase} phase.")
+                 else:
+                     self.state = "calculating"
+                     self.current_instruction = "Calculating thresholds..."
+                     print("All active phases complete. Calculating...")
+                     self._calculate_thresholds()
 
-                ratio_to_collect = None
-                if self.state == "mouth": ratio_to_collect = current_mouth_ratio
-                elif self.state == "eyebrows": ratio_to_collect = current_eyebrow_ratio
-                elif self.state == "smile": ratio_to_collect = current_smile_ratio
+        elif self.state == "eyebrows":
+             self.data["eyebrows"]["eyebrow_ratios"].append(current_eyebrow_ratio)
+             self.frame_count += 1
+             progress = f"({self.frame_count}/{self.frames_to_collect})"
+             self.current_instruction = f"Raise Eyebrows High {progress}"
 
-                if ratio_to_collect is not None:
-                    self.data[self.state][ratio_key].append(ratio_to_collect)
-                    self.frame_count += 1
+             print(f"DEBUG [Eyebrows Phase]: Frame Count = {self.frame_count}, Target = {self.frames_to_collect}")
 
-                    phase_display_name = self.state.replace('_', ' ').title()
-                    if self.state == "mouth": phase_display_name = "Open Mouth Wide"
-                    elif self.state == "eyebrows": phase_display_name = "Raise Eyebrows High"
-                    elif self.state == "smile": phase_display_name = "Smile Naturally"
-                    self.current_instruction = f"{phase_display_name} {progress}"
+             if self.frame_count >= self.frames_to_collect:
+                 print(f"DEBUG: Eyebrows phase complete check passed.") 
+                 print(f"DEBUG: Old Phase Index: {self.current_phase_index}")
+                 self.current_phase_index += 1 
+                 print(f"DEBUG: New Phase Index: {self.current_phase_index}, Active Phases Length: {len(self.active_phases_in_run)}")
 
-                    if self.frame_count >= self.frames_to_collect:
-                        print(f"{self.state.title()} phase complete.")
-
-                        self.current_phase_index += 1
-                        if self.current_phase_index < len(self.active_phases_in_run):
-                            next_phase = self.active_phases_in_run[self.current_phase_index]
-                            self.state = next_phase
-                            self.frame_count = 0
-
-                            next_phase_display_name = next_phase.replace('_', ' ').title()
-                            if next_phase == "mouth": next_phase_display_name = "Open Mouth Wide"
-                            elif next_phase == "eyebrows": next_phase_display_name = "Raise Eyebrows High"
-                            elif next_phase == "smile": next_phase_display_name = "Smile Naturally"
-                            self.current_instruction = f"{next_phase_display_name} for {duration} sec..."
-                            print(f"Starting {next_phase} phase.")
-                        else:
-                            self.state = "calculating"
-                            self.current_instruction = "Calculating thresholds..."
-                            print("All active phases complete. Calculating...")
-                            self._calculate_thresholds()
+                 if self.current_phase_index < len(self.active_phases_in_run):
+                     next_phase = self.active_phases_in_run[self.current_phase_index]
+                     print(f"DEBUG: Next phase determined: {next_phase}")
+                     self.state = next_phase
+                     self.frame_count = 0
+                     next_phase_display_name = next_phase.replace('_', ' ').title()
+                     if next_phase == "mouth": next_phase_display_name = "Open Mouth Wide"
+                     elif next_phase == "eyebrows": next_phase_display_name = "Raise Eyebrows High"
+                     elif next_phase == "smile": next_phase_display_name = "Smile Naturally"
+                     self.current_instruction = f"{next_phase_display_name} for {duration} sec..."
+                     print(f"DEBUG: State changed to '{self.state}'. Starting next phase.")
+                 else:
+                     self.state = "calculating"
+                     self.current_instruction = "Calculating thresholds..."
+                     self._calculate_thresholds()
+        elif self.state == "smile":
+             self.data["smile"]["smile_ratios"].append(current_smile_ratio)
+             self.frame_count += 1
+             self.current_instruction = f"Smile Naturally {progress}"
+             if self.frame_count >= self.frames_to_collect:
+                 print(f"{self.state.title()} phase complete.")
+                 self.current_phase_index += 1
+                 if self.current_phase_index < len(self.active_phases_in_run):
+                     next_phase = self.active_phases_in_run[self.current_phase_index]
+                     self.state = next_phase; self.frame_count = 0
+                     print(f"Starting {next_phase} phase.")
+                 else:
+                     self.state = "calculating"; self.current_instruction = "Calculating thresholds..."
+                     print("All active phases complete. Calculating...")
+                     self._calculate_thresholds()
 
     def _calculate_thresholds(self):
         new_thresholds = {}
