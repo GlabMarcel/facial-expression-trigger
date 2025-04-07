@@ -10,9 +10,50 @@ RIGHT_EYEBROW_TOP_INDEX = 334
 RIGHT_EYE_TOP_INDEX = 386
 MOUTH_CORNER_LEFT = 61
 MOUTH_CORNER_RIGHT = 291
+LEFT_EYE_P1 = 33
+LEFT_EYE_P2 = 160
+LEFT_EYE_P3 = 158
+LEFT_EYE_P4 = 133
+LEFT_EYE_P5 = 153
+LEFT_EYE_P6 = 144
+LEFT_EYE_INDICES = [LEFT_EYE_P1, LEFT_EYE_P2, LEFT_EYE_P3, LEFT_EYE_P4, LEFT_EYE_P5, LEFT_EYE_P6]
+RIGHT_EYE_P1 = 263
+RIGHT_EYE_P2 = 387
+RIGHT_EYE_P3 = 385
+RIGHT_EYE_P4 = 362
+RIGHT_EYE_P5 = 380
+RIGHT_EYE_P6 = 373
+RIGHT_EYE_INDICES = [RIGHT_EYE_P1, RIGHT_EYE_P2, RIGHT_EYE_P3, RIGHT_EYE_P4, RIGHT_EYE_P5, RIGHT_EYE_P6]
+
+def calculate_ear(eye_points):
+    try:
+        ver1 = calculate_distance(eye_points[1], eye_points[5])
+        ver2 = calculate_distance(eye_points[2], eye_points[4])
+        hor = calculate_distance(eye_points[0], eye_points[3])
+
+        if hor == 0:
+            return None
+
+        ear = (ver1 + ver2) / (2.0 * hor)
+        return ear
+    except (IndexError, TypeError):
+        return None
+
+def get_left_ear(face_landmarks):
+    try:
+        eye_points = [face_landmarks.landmark[i] for i in LEFT_EYE_INDICES]
+        return calculate_ear(eye_points)
+    except (IndexError, AttributeError, TypeError):
+        return None
+
+def get_right_ear(face_landmarks):
+    try:
+        eye_points = [face_landmarks.landmark[i] for i in RIGHT_EYE_INDICES]
+        return calculate_ear(eye_points)
+    except (IndexError, AttributeError, TypeError):
+        return None
 
 def calculate_distance(p1, p2):
-    """Calculates the Euclidean distance between two landmarks."""
     if p1 is None or p2 is None: return 0
     if hasattr(p1, 'x') and hasattr(p1, 'y') and hasattr(p2, 'x') and hasattr(p2, 'y'):
         return math.sqrt((p1.x - p2.x)**2 + (p1.y - p2.y)**2)
@@ -20,7 +61,6 @@ def calculate_distance(p1, p2):
         return 0
 
 def get_mouth_open_ratio(face_landmarks):
-    """Calculates the mouth open ratio (lip_dist / eye_dist)."""
     try:
         lip_top = face_landmarks.landmark[LIP_TOP_INDEX]
         lip_bottom = face_landmarks.landmark[LIP_BOTTOM_INDEX]
@@ -39,7 +79,6 @@ def get_mouth_open_ratio(face_landmarks):
         return None
 
 def get_eyebrows_raised_ratio(face_landmarks):
-    """Calculates the average eyebrow raised ratio."""
     try:
         left_eyebrow_top = face_landmarks.landmark[LEFT_EYEBROW_TOP_INDEX]
         left_eye_top = face_landmarks.landmark[LEFT_EYE_TOP_INDEX]
@@ -63,12 +102,8 @@ def get_eyebrows_raised_ratio(face_landmarks):
         return None
     except Exception as e:
         return None
-    
+
 def get_smile_ratio(face_landmarks):
-    """
-    Calculates the smile ratio (mouth_width / eye_dist_x).
-    A higher ratio indicates a wider smile relative to eye distance.
-    """
     try:
         mouth_left = face_landmarks.landmark[MOUTH_CORNER_LEFT]
         mouth_right = face_landmarks.landmark[MOUTH_CORNER_RIGHT]

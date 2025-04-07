@@ -1,10 +1,14 @@
 import sys
 from PyQt6.QtWidgets import QApplication
-from gui.main_window import MainWindow
+from controller.app_controller import AppController
+import multiprocessing as mp
 
 if __name__ == "__main__":
+    try:
+        mp.set_start_method('spawn', force=True)
+    except RuntimeError:
+        pass
     app = QApplication(sys.argv)
-    main_window = MainWindow()
-    main_window.show()
-
+    controller = AppController(app)
+    controller.show_view()
     sys.exit(app.exec())
