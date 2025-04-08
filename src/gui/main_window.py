@@ -38,7 +38,8 @@ class MainWindow(QWidget):
 
     def _init_ui(self):
         main_layout = QVBoxLayout(self)
-        self.video_label = QLabel("Waiting for Controller...")
+        self.video_label = QLabel("Click 'Start' to begin")
+        self.video_label.setObjectName("VideoLabel")
         self.video_label.setAlignment(Qt.AlignmentFlag.AlignCenter); self.video_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding); self.video_label.setMinimumSize(640, 480); self.video_label.setStyleSheet("border: 1px solid #555; background-color: #333; color: white;")
         main_layout.addWidget(self.video_label, stretch=1)
         expression_frame = QFrame(); expression_frame.setFrameShape(QFrame.Shape.StyledPanel); self.expressions_layout = QVBoxLayout(expression_frame); self.expressions_layout.setContentsMargins(5, 5, 5, 5)

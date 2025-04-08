@@ -22,8 +22,8 @@
             "type": "write",
             "value": ":)"
         },
-        "left_wink": null,
-        "right_wink": null
+        "left_wink": "press",
+        "right_wink": "s"
     },
     "enabled_gestures": {
         "mouth_open": false,

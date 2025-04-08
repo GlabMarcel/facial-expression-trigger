@@ -1,20 +1,12 @@
+# src/core/calibrator.py
 import numpy as np
 import time
-from .expression_analyzer import (get_mouth_open_ratio, get_eyebrows_raised_ratio,
-                                  get_smile_ratio, get_left_ear, get_right_ear)
+from .expression_analyzer import (get_mouth_open_ratio, get_eyebrows_raised_ratio, get_smile_ratio)
 
 class Calibrator:
-    WINK_THRESHOLD_FACTOR = 0.5
-
     GESTURES_WITH_ACTIVE_PHASE = {"mouth_open", "eyebrows_raised", "smile"}
-
     ACTIVE_PHASE_ORDER = ["mouth", "eyebrows", "smile"]
-    PHASE_TO_KEY_MAP = {
-        "mouth": "mouth_open",
-        "eyebrows": "eyebrows_raised",
-        "smile": "smile"
-    }
-
+    PHASE_TO_KEY_MAP = {"mouth": "mouth_open", "eyebrows": "eyebrows_raised", "smile": "smile"}
 
     def __init__(self, frames_to_collect=60, threshold_factor=0.6):
         self.frames_to_collect = frames_to_collect
@@ -31,9 +23,8 @@ class Calibrator:
         self.current_phase_index = -1
 
     def _reset_data(self):
-
         self.data = {
-            "neutral": {"mouth_ratios": [], "eyebrow_ratios": [], "smile_ratios": [], "left_ears": [], "right_ears": []},
+            "neutral": {"mouth_ratios": [], "eyebrow_ratios": [], "smile_ratios": []},
             "mouth": {"mouth_ratios": []},
             "eyebrows": {"eyebrow_ratios": []},
             "smile": {"smile_ratios": []}
@@ -45,18 +36,12 @@ class Calibrator:
         self.active_phases_in_run = []
         self.current_phase_index = -1
 
-
     def start(self, enabled_gestures_keys):
         print(f"Starting calibration for: {enabled_gestures_keys}")
         self._reset_data()
         self.enabled_keys_in_run = set(enabled_gestures_keys)
-
-        self.active_phases_in_run = [
-            phase for phase in self.ACTIVE_PHASE_ORDER
-            if self.PHASE_TO_KEY_MAP.get(phase) in self.enabled_keys_in_run
-        ]
+        self.active_phases_in_run = [ p for p in self.ACTIVE_PHASE_ORDER if self.PHASE_TO_KEY_MAP.get(p) in self.enabled_keys_in_run ]
         print(f"Active calibration phases: {self.active_phases_in_run}")
-
         self.state = "neutral"
         self.frame_count = 0
         self.current_phase_index = -1
@@ -71,19 +56,14 @@ class Calibrator:
         return self.current_instruction
 
     def get_calculated_thresholds(self):
-        if self.state == "done":
-            return self.calculated_thresholds
-        return None
+        return self.calculated_thresholds if self.state == "done" else None
 
     def get_error_message(self):
         return self.error_message
 
     def process_landmarks(self, face_landmarks):
-        """Processes landmarks during an active calibration phase."""
         if not self.is_calibrating(): return
-
         if face_landmarks is None:
-
              base_instruction = self.current_instruction.split(" (")[0]
              self.current_instruction = f"{base_instruction} (No face detected!)"
              return
@@ -91,11 +71,11 @@ class Calibrator:
         current_mouth_ratio = get_mouth_open_ratio(face_landmarks)
         current_eyebrow_ratio = get_eyebrows_raised_ratio(face_landmarks)
         current_smile_ratio = get_smile_ratio(face_landmarks)
-        current_left_ear = get_left_ear(face_landmarks)
-        current_right_ear = get_right_ear(face_landmarks)
 
-        if any(v is None for v in [current_mouth_ratio, current_eyebrow_ratio, current_smile_ratio, current_left_ear, current_right_ear]):
-            print("Warning: Skipping frame during calibration due to missing ratio/EAR.")
+        print(f"DEBUG - Ratios Calculated -> Mouth: {current_mouth_ratio}, Brows: {current_eyebrow_ratio}, Smile: {current_smile_ratio}")
+
+        if any(v is None for v in [current_mouth_ratio, current_eyebrow_ratio, current_smile_ratio]):
+            print("Warning: Skipping frame during calibration due to missing ratio.")
             base_instruction = self.current_instruction.split(" (")[0]
             self.current_instruction = f"{base_instruction} (Ratio Error!)"
             return
@@ -103,15 +83,14 @@ class Calibrator:
         duration = self.frames_to_collect // 30
         progress = f"({self.frame_count + 1}/{self.frames_to_collect})"
 
+        print(f"DEBUG - Entering state check with self.state = '{self.state}'")
+
         if self.state == "neutral":
             self.data["neutral"]["mouth_ratios"].append(current_mouth_ratio)
             self.data["neutral"]["eyebrow_ratios"].append(current_eyebrow_ratio)
             self.data["neutral"]["smile_ratios"].append(current_smile_ratio)
-            self.data["neutral"]["left_ears"].append(current_left_ear)
-            self.data["neutral"]["right_ears"].append(current_right_ear)
             self.frame_count += 1
             self.current_instruction = f"Look Neutral {progress}"
-
             if self.frame_count >= self.frames_to_collect:
                 print("Neutral phase complete.")
                 self.current_phase_index = 0
@@ -159,15 +138,12 @@ class Calibrator:
              self.frame_count += 1
              progress = f"({self.frame_count}/{self.frames_to_collect})"
              self.current_instruction = f"Raise Eyebrows High {progress}"
-
              print(f"DEBUG [Eyebrows Phase]: Frame Count = {self.frame_count}, Target = {self.frames_to_collect}")
-
              if self.frame_count >= self.frames_to_collect:
-                 print(f"DEBUG: Eyebrows phase complete check passed.") 
+                 print(f"DEBUG: Eyebrows phase complete check passed.")
                  print(f"DEBUG: Old Phase Index: {self.current_phase_index}")
-                 self.current_phase_index += 1 
+                 self.current_phase_index += 1
                  print(f"DEBUG: New Phase Index: {self.current_phase_index}, Active Phases Length: {len(self.active_phases_in_run)}")
-
                  if self.current_phase_index < len(self.active_phases_in_run):
                      next_phase = self.active_phases_in_run[self.current_phase_index]
                      print(f"DEBUG: Next phase determined: {next_phase}")
@@ -180,9 +156,12 @@ class Calibrator:
                      self.current_instruction = f"{next_phase_display_name} for {duration} sec..."
                      print(f"DEBUG: State changed to '{self.state}'. Starting next phase.")
                  else:
+                     print("DEBUG: Last active phase (eyebrows) complete. Changing state to calculating.")
                      self.state = "calculating"
                      self.current_instruction = "Calculating thresholds..."
                      self._calculate_thresholds()
+             print(f"DEBUG [End of Eyebrows Logic]: State is now {self.state}, Frame Count is {self.frame_count}")
+
         elif self.state == "smile":
              self.data["smile"]["smile_ratios"].append(current_smile_ratio)
              self.frame_count += 1
@@ -205,62 +184,47 @@ class Calibrator:
             min_samples = max(1, self.frames_to_collect // 4)
             neutral_data = self.data["neutral"]
 
-
             if len(neutral_data.get("mouth_ratios", [])) < min_samples or \
                len(neutral_data.get("eyebrow_ratios", [])) < min_samples or \
-               len(neutral_data.get("smile_ratios", [])) < min_samples or \
-               len(neutral_data.get("left_ears", [])) < min_samples or \
-               len(neutral_data.get("right_ears", [])) < min_samples:
-                raise ValueError("Not enough data collected during neutral phase.")
+               len(neutral_data.get("smile_ratios", [])) < min_samples:
+                 raise ValueError("Not enough data collected during neutral phase.")
 
-
+            gestures_calculated = set()
             for key in self.enabled_keys_in_run:
-                if key == "mouth_open":
+                if key == "mouth_open" and "mouth" in self.active_phases_in_run:
                     active_ratios = self.data["mouth"].get("mouth_ratios", [])
-                    if len(active_ratios) < min_samples: raise ValueError("Not enough data collected for mouth open.")
-                    neutral_val = np.mean(neutral_data["mouth_ratios"])
-                    active_val = np.mean(active_ratios)
-                    if active_val <= neutral_val: raise ValueError("Active mouth ratio not higher than neutral.")
-                    threshold = neutral_val + self.threshold_factor * (active_val - neutral_val)
-                    new_thresholds[key] = round(threshold, 4)
-
-                elif key == "eyebrows_raised":
+                    if len(active_ratios) < min_samples: raise ValueError(f"Not enough data collected for {key}.")
+                    neutral_val = np.mean(neutral_data["mouth_ratios"]); active_val = np.mean(active_ratios)
+                    if active_val <= neutral_val: raise ValueError(f"Active ratio not higher than neutral for {key}.")
+                    threshold = neutral_val + self.threshold_factor * (active_val - neutral_val); new_thresholds[key] = round(threshold, 4)
+                    gestures_calculated.add(key)
+                elif key == "eyebrows_raised" and "eyebrows" in self.active_phases_in_run:
                     active_ratios = self.data["eyebrows"].get("eyebrow_ratios", [])
-                    if len(active_ratios) < min_samples: raise ValueError("Not enough data collected for eyebrows raised.")
-                    neutral_val = np.mean(neutral_data["eyebrow_ratios"])
-                    active_val = np.mean(active_ratios)
-                    if active_val <= neutral_val: raise ValueError("Active eyebrow ratio not higher than neutral.")
-                    threshold = neutral_val + self.threshold_factor * (active_val - neutral_val)
-                    new_thresholds[key] = round(threshold, 4)
-
-                elif key == "smile":
+                    if len(active_ratios) < min_samples: raise ValueError(f"Not enough data collected for {key}.")
+                    neutral_val = np.mean(neutral_data["eyebrow_ratios"]); active_val = np.mean(active_ratios)
+                    if active_val <= neutral_val: raise ValueError(f"Active ratio not higher than neutral for {key}.")
+                    threshold = neutral_val + self.threshold_factor * (active_val - neutral_val); new_thresholds[key] = round(threshold, 4)
+                    gestures_calculated.add(key)
+                elif key == "smile" and "smile" in self.active_phases_in_run:
                     active_ratios = self.data["smile"].get("smile_ratios", [])
-                    if len(active_ratios) < min_samples: raise ValueError("Not enough data collected for smile.")
-                    neutral_val = np.mean(neutral_data["smile_ratios"])
-                    active_val = np.mean(active_ratios)
-                    if active_val <= neutral_val: raise ValueError("Active smile ratio not higher than neutral.")
-                    threshold = neutral_val + self.threshold_factor * (active_val - neutral_val)
-                    new_thresholds[key] = round(threshold, 4)
+                    if len(active_ratios) < min_samples: raise ValueError(f"Not enough data collected for {key}.")
+                    neutral_val = np.mean(neutral_data["smile_ratios"]); active_val = np.mean(active_ratios)
+                    if active_val <= neutral_val: raise ValueError(f"Active ratio not higher than neutral for {key}.")
+                    threshold = neutral_val + self.threshold_factor * (active_val - neutral_val); new_thresholds[key] = round(threshold, 4)
+                    gestures_calculated.add(key)
 
-                elif key == "left_wink" or key == "right_wink":
-
-                    avg_neutral_left_ear = np.mean(neutral_data["left_ears"])
-                    avg_neutral_right_ear = np.mean(neutral_data["right_ears"])
-                    if avg_neutral_left_ear < 0.1 or avg_neutral_right_ear < 0.1:
-                        print(f"Warning: Neutral EAR too low, skipping wink threshold calculation for {key}.")
-                        continue
-                    if key == "left_wink":
-                        threshold = avg_neutral_left_ear * self.WINK_THRESHOLD_FACTOR
-                        new_thresholds[key] = round(threshold, 4)
-                    elif key == "right_wink":
-                        threshold = avg_neutral_right_ear * self.WINK_THRESHOLD_FACTOR
-                        new_thresholds[key] = round(threshold, 4)
-
-            if not new_thresholds:
-                raise ValueError("No thresholds could be calculated for enabled gestures.")
+            # Check if any enabled gesture requiring an active phase was actually calculated
+            enabled_active_gestures = {k for k,v in self.PHASE_TO_KEY_MAP.items() if v in self.enabled_keys_in_run}
+            if not new_thresholds and enabled_active_gestures:
+                 raise ValueError("No thresholds could be calculated for enabled active gestures.")
 
             self.calculated_thresholds = new_thresholds
-            self.state = "done"; summary = ", ".join([f"{k.replace('_',' ').title()}: {v}" for k,v in self.calculated_thresholds.items()]); self.current_instruction = f"Calibration Complete! {summary}"; print(f"Thresholds calculated: {self.calculated_thresholds}")
+            self.state = "done"
+            summary = ", ".join([f"{k.replace('_',' ').title()}: {v}" for k,v in self.calculated_thresholds.items()]) if new_thresholds else "No thresholds calculated (check enabled gestures)."
+            self.current_instruction = f"Calibration Complete! {summary}"
+            print(f"Thresholds calculated: {self.calculated_thresholds}")
 
-        except ValueError as ve: self.state = "error"; self.error_message = f"Calc Error: {ve}."; self.current_instruction = f"Error: {ve}"; self.calculated_thresholds = {}; print(f"Calibration Error: {ve}")
-        except Exception as e: self.state = "error"; self.error_message = f"Unexpected calc error: {e}"; self.current_instruction = "Error during calculation."; self.calculated_thresholds = {}; print(f"Unexpected Calibration Error: {e}")
+        except ValueError as ve:
+            self.state = "error"; self.error_message = f"Calc Error: {ve}."; self.current_instruction = f"Error: {ve}"; self.calculated_thresholds = {}; print(f"Calibration Error: {ve}")
+        except Exception as e:
+            self.state = "error"; self.error_message = f"Unexpected calc error: {e}"; self.current_instruction = "Error during calculation."; self.calculated_thresholds = {}; print(f"Unexpected Calibration Error: {e}")
