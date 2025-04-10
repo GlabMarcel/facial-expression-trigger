@@ -6,6 +6,7 @@ __pycache__/
 # C extensions (relevant for some packages)
 *.so
 *.pyd
+.idx/
 
 # Distribution / packaging
 .Python

@@ -10,26 +10,35 @@ This project is currently in a Proof of Concept stage (as of April 6, 2025).
 
 ## Features
 
-* Real-time face landmark detection via webcam using MediaPipe Face Mesh.
-* Detection of gestures:
-    * Mouth Open
-    * Eyebrows Raised (Both)
-    * **Smile** *(New)*
-* Triggers keyboard actions (`press`, `hotkey`, `write`) via PyAutoGUI upon gesture detection (on state change False -> True).
-* Graphical User Interface (GUI) built with PyQt6.
-* Displays live webcam feed with landmark overlays.
-* Provides a list view showing monitored expressions, their configured actions, and live status indicators.
-* Includes a GUI-driven calibration routine to set detection thresholds specific to the user and lighting conditions (for Mouth, Eyebrows, **and Smile**).
-* Allows configuration of actions per gesture via a user-friendly dialog (selecting from predefined common actions).
-* Persistently saves calibrated thresholds and configured actions in `config.json` file.
-* Modular code structure (`core` logic separated from `gui`).
+* **Real-time Facial Landmark Detection:** Utilizes the webcam and MediaPipe Face Mesh to detect facial landmarks in real-time, enabling the recognition of various facial expressions.
+* **Gesture Detection:**
+    * **Mouth Open:** Detects when the user opens their mouth.
+    * **Eyebrows Raised (Both):** Detects when the user raises both eyebrows simultaneously.
+    * **Smile:** Detects a smile based on the mouth's width in comparison to the distance between the eyes.
+* **Configurable Keyboard Actions:** Triggers keyboard actions using PyAutoGUI when a gesture is detected (specifically, on the transition from a gesture not being detected to being detected). Supported actions include:
+    * `press`: Simulate pressing a single key (e.g., "enter", "space").
+    * `hotkey`: Simulate pressing a combination of keys (e.g., "ctrl+c", "alt+tab").
+    * `write`: Simulate typing text (e.g., ":)", "Hello!").
+* **Graphical User Interface (GUI):** Built with PyQt6, the GUI provides a user-friendly interface for interacting with the application.
+* **Live Webcam Feed with Overlays:** Displays the live webcam feed with visual overlays of detected facial landmarks, providing feedback on the detection process.
+* **Expression Monitoring and Status:** Presents a list view showing the monitored expressions (Mouth Open, Eyebrows Raised, Smile), their currently configured actions, and live status indicators (green when detected, otherwise not).
+* **GUI-Driven Calibration:** Includes a calibration routine accessible through the GUI. This allows users to set detection thresholds specific to their facial features and the lighting conditions of their environment, ensuring accurate and reliable gesture detection. The calibration covers Mouth Open, Eyebrows Raised, and Smile.
+* **Action Configuration Dialog:** Offers a user-friendly dialog for configuring actions associated with each gesture. Users can select from a predefined list of common actions (keys, hotkeys, text strings).
+* **Persistent Configuration:** Saves the calibrated thresholds and configured actions in a `config.json` file in the project's root directory, ensuring settings are retained between application runs.
+* **Modular Code Structure:** The application is designed with a modular structure, separating the core logic (landmark detection, expression analysis, action triggering) from the GUI components. This enhances maintainability and potential future extensions.
 
 ## Requirements
 
+* **MediaPipe:** This library provides the core face mesh functionality for landmark detection.
 * **Python:** Version **3.11.x** is strongly recommended due to library compatibility issues encountered with newer versions during development.
 * **Operating System:** Developed and tested primarily on Windows. PyAutoGUI behavior might differ on macOS/Linux.
 * **Webcam:** A standard webcam accessible by OpenCV.
-* **Python Packages:** See `requirements.txt` (includes `opencv-python`, `mediapipe`, `pyautogui`, `PyQt6`, `numpy`).
+* **Python Packages:** See `requirements.txt` for a complete list of required packages. Key dependencies include:
+    * `opencv-python`: For webcam access and image processing.
+    * `mediapipe`: For face landmark detection.
+    * `pyautogui`: For simulating keyboard actions.
+    * `PyQt6`: For building the graphical user interface.
+    * `numpy`: For numerical operations.
 * **Windows Prerequisite:** You might need to install the latest **Microsoft Visual C++ Redistributable (x64)** for MediaPipe/OpenCV to work correctly. Download from Microsoft's official website and **restart your PC** after installation.
 
 ## Setup
